@@ -1,0 +1,148 @@
+package com.fso.fat
+{
+  import com.fso.fat.ImageViewer;
+	import com.fso.fat.events.ImageEvent;
+	import com.fso.fat.imageLoader;
+	import com.fso.fat.vo.ImageVO;
+	
+	import flash.display.Bitmap;
+	import flash.display.MovieClip;
+	import flash.display.Shape;
+	import flash.events.Event;
+	import flash.events.MouseEvent;
+	import flash.net.URLLoader;
+	import flash.net.URLRequest;
+	
+	
+	import org.osmf.events.SwitchEvent;
+	import org.osmf.image.ImageElement;
+	
+	public class Weather extends MovieClip
+	{
+	
+		private var _xmlData:XML; //contains all data from xml
+		private var _xmlURL:String; //url of the XML that will load
+		
+		private var _weatherToday:MovieClip = new MovieClip;
+		private var _weatherTomorrow:MovieClip = new MovieClip;
+		
+		private var _front:Front;
+		private var _back:Back;
+		
+		private var _currentFace:String;
+		
+		private var _zipcode:String = new String();
+		
+		private var _image:String = new String();
+		
+		private var _imageLoader:imageLoader = new imageLoader();
+		
+		
+		public function Weather()
+		{
+		
+			super();
+			
+			_zipcode = "49341"; //default zip to Rockford, Michigan		
+			
+			_image = "assets/images/.png"
+				
+			loadXML("http://weather.yahooapis.com/forecastrss?p=" + _zipcode +"&u=f" + _image );			
+			
+			addChild(_weatherToday);
+			addChild(_weatherTomorrow);
+			
+			_weatherToday.x = 600;			
+			_weatherToday.y = 250;
+					
+			_weatherTomorrow.x = 115;
+			_weatherTomorrow.y = 200;
+			
+			var appBorder:Shape = new Shape();
+			this.addChild(appBorder);
+			appBorder.graphics.lineStyle(5, 0x125893, 1);
+			appBorder.graphics.beginFill(0x000000, 1);
+			appBorder.graphics.drawRoundRect(75, 220, 355, 350, 25);
+			appBorder.graphics.endFill();
+			
+			var zipBorder:Shape = new Shape();
+			this.addChild(zipBorder);
+			zipBorder.graphics.lineStyle(2, 0xF9A914, 1);			
+			zipBorder.graphics.drawRoundRect(97, 305, 90, 25, 11);
+			zipBorder.graphics.endFill();
+
+			//weather results view
+			_front = new Front();
+			this.addChild(_front);
+			_front.y = 475;
+			_front.x = 250;					
+			_front.addChild(_weatherToday);	
+		
+		
+			//enter location zip view
+			_back = new Back();
+			_back.y = 300;
+			_back.x = 250;
+			_back.back.buttonMode = true;
+			_back.back.addEventListener(MouseEvent.CLICK, weatherForecast);			
+			_back.visible = true;
+			
+			//zipCode input restrictions
+			_back.tfZipCode.selectable = true;
+			_back.tfZipCode.maxChars = 5;
+			_back.tfZipCode.restrict = "0-9";
+			this.addChild(_back);	
+		}
+		
+		private function loadXML(xmlURL:String):void //loads xml data into flash
+		{
+			var loader:URLLoader = new URLLoader();
+			var request:URLRequest = new URLRequest(xmlURL);			
+			
+			loader.load(request);
+			loader.addEventListener(Event.COMPLETE, loadData);	//check when it's complete		
+		}
+		
+		private function loadData(event:Event):void  //assigns the received data to the _xmlData variable
+		{
+			_xmlData = new XML(event.currentTarget.data);  
+			
+			var yweather:Namespace = new Namespace("http://xml.weather.yahoo.com/ns/rss/1.0");
+			
+			trace(_xmlData.channel.item.yweather::forecast + "it's me");
+			var day:String = _xmlData.channel.item.yweather::forecast[0].@day;
+			var codeToday:String = _xmlData.channel.item.yweather::forecast[0].@code;
+			trace(_xmlData.channel.item.yweather::forecast[0].@code +" tracing @code");
+			var codeTomorrow:String = _xmlData.channel.item.yweather::forecast[1].@code;
+			
+			var _image:String = _xmlData.channel.item.yweather::forecast[0].@code.image;			
+			
+			var weather:XMLList = _xmlData.channel.item.yweather::code;
+			
+			//assigning the information to the text fields
+			_front.maxt.text = _xmlData.channel.item.yweather::forecast[1].@high + " °F";
+			_front.mint.text = _xmlData.channel.item.yweather::forecast[1].@low + " °F";
+			trace(_xmlData.channel.yweather::location.@city);
+			_front.provincia.text = _xmlData.channel.yweather::location.@city;
+			_front.humedad.text = _xmlData.channel.yweather::atmosphere.@humidity + " %";
+			_front.temp.text = _xmlData.channel.item.yweather::condition.@temp + " °F";
+			_front.max.text = _xmlData.channel.item.yweather::forecast[0].@high + " °F";
+			_front.min.text = _xmlData.channel.item.yweather::forecast[0].@low + " °F"	
+			
+			_front.xml = _xmlData.channel.item.yweather::condition[0].@code;
+			var imageVo:ImageVO = new ImageVO();
+			imageVo.image = _front.xml;			
+			
+			_imageLoader.weatherVO = imageVo;				
+		}
+		
+		private function weatherForecast(event:MouseEvent):void
+		{
+			if(_back.tfZipCode.text.length == 5)
+			{
+				loadXML("http://weather.yahooapis.com/forecastrss?p=" + _back.tfZipCode.text +"&u=f");				
+				
+			}
+		}
+	}	
+}
